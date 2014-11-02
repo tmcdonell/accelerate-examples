@@ -41,6 +41,14 @@ main = do
       solve       = run1 backend (kmeans (use points))
       backend     = get optBackend opts
 
+      solve' clusters
+        | keepGoing     = solve' clusters'
+        | otherwise     = clusters'
+        where
+          r         = run backend (kmeans1 (use points) (use clusters))
+          keepGoing = A.indexArray (P.fst r) Z
+          clusters' = P.snd r
+
       initial :: Vector (Cluster Float)
       initial = A.fromList (Z:.nclusters) initial'
 
@@ -49,12 +57,14 @@ main = do
 
   -- Warm up first by printing the expected results
   --
-  putStrLn $ "number of points: " P.++ show npoints
-  putStrLn $ "final clusters:\n"  P.++
-    unlines (P.map show . A.toList $ solve initial)
+--  putStrLn $ "number of points: " P.++ show npoints
+--  putStrLn $ "final clusters:\n"  P.++
+--    unlines (P.map show . A.toList $ solve initial)
 
   -- Now benchmark
   --
   runBenchmarks opts rest
-    [ bench "k-means" $ whnf solve initial ]
+    [ bench "k-means-step"    $ whnf solve' initial
+    , bench "k-means-iterate" $ whnf solve  initial
+    ]
 

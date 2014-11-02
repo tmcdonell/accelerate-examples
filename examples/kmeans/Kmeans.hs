@@ -28,7 +28,7 @@
 -- Haskell", (c) Simon Marlow, 2013.
 --
 
-module Kmeans ( Point, Cluster, Id, kmeans )
+module Kmeans ( Point, Cluster, Id, kmeans, kmeans1 )
   where
 
 import Prelude                                          as P
@@ -190,19 +190,26 @@ makeNewClusters points clusters
 -- positions, until the positions converge (or some maximum iteration limit is
 -- reached?)
 --
-kmeans :: forall a. (Elt a, IsFloating a, RealFloat a)
+kmeans :: (Elt a, IsFloating a, RealFloat a)
        => Acc (Vector (Point a))        -- the points to cluster
        -> Acc (Vector (Cluster a))      -- initial cluster positions (guess)
        -> Acc (Vector (Cluster a))
 kmeans points clusters
   = A.asnd
-  $ A.awhile (A.uncurry keepGoing)
-             (\cs -> let (_, old) = unlift cs   :: (Acc (Vector (Cluster a)), Acc (Vector (Cluster a)))
-                         new      = makeNewClusters points old
-                     in
-                     lift (old,new))
-             (lift (clusters, makeNewClusters points clusters))
+  $ A.awhile (A.afst)
+             (kmeans1 points . A.asnd)
+             (lift (unit (constant True), clusters))
+
+kmeans1 :: forall a. (Elt a, IsFloating a, RealFloat a)
+        => Acc (Vector (Point a))
+        -> Acc (Vector (Cluster a))
+        -> Acc (Scalar Bool, Vector (Cluster a))
+kmeans1 points old
+  = lift (cont, new)
   where
+    new  = makeNewClusters points old
+    cont = keepGoing old new
+
     keepGoing :: Acc (Vector (Cluster a)) -> Acc (Vector (Cluster a)) -> Acc (Scalar Bool)
     keepGoing xs ys
       = A.or
