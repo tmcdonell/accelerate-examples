@@ -57,7 +57,7 @@ main = do
 
   -- Warm up first by printing the expected results
   --
---  putStrLn $ "number of points: " P.++ show npoints
+  putStrLn $ "number of points: " P.++ show npoints
 --  putStrLn $ "final clusters:\n"  P.++
 --    unlines (P.map show . A.toList $ solve initial)
 
